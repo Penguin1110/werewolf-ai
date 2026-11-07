@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>月下狼人殺 · AI 競技場</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="viewport">
+  <div id="stage" class="night">
+    <div id="sky"><div class="sky-day"></div><div class="sky-night"></div></div>
+    <div id="stars"></div>
+    <div id="celestial"><div class="moon"></div><div class="sun"></div></div>
+    <div id="scenery-wrap"></div>
+    <div id="fog"></div>
+
+    <div id="center">
+      <div id="campfire">
+        <div class="logs"></div>
+        <div class="flame f1"></div><div class="flame f2"></div><div class="flame f3"></div>
+        <div class="embers"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div id="tally"></div>
+    </div>
+
+    <div id="seats"></div>
+    <svg id="fx" viewBox="0 0 1600 900">
+      <defs>
+        <marker id="arrowGold" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#f2c96b"/></marker>
+        <marker id="arrowRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#ff4a3a"/></marker>
+        <marker id="arrowPurple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#c59bff"/></marker>
+        <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <g id="fx-lines"></g>
+    </svg>
+    <div id="fxlayer"></div>
+    <div id="night-veil"></div>
+
+    <header id="topbar">
+      <div class="brand"><span class="brand-moon"></span><div><b>月下狼人殺</b><small>AI ARENA</small></div></div>
+      <div id="phase-chip"><span id="phase-icon"></span><span id="phase-text">準備中</span></div>
+      <div class="controls">
+        <button id="btn-restart" title="從頭重播">⏮</button>
+        <button id="btn-play" title="自動播放 / 暫停 (空白鍵)">▶</button>
+        <button id="btn-step" title="下一步 (→)">⏭</button>
+        <div class="speed"><button data-speed="0.5">0.5×</button><button data-speed="1" class="on">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button><button data-speed="12">⚡</button></div>
+        <label class="toggle" title="上帝視角：看到所有身分、夜晚行動與 AI 內心獨白"><input type="checkbox" id="god" checked><span>👁 上帝視角</span></label>
+        <button id="btn-log" title="編年史">📜</button>
+        <button id="btn-lobby" title="回大廳">🏠</button>
+      </div>
+    </header>
+    <div id="status"></div>
+
+    <div id="dialog" class="hidden">
+      <div class="dlg-portrait"></div>
+      <div class="dlg-main">
+        <div class="dlg-head"><span class="dlg-channel"></span><span class="dlg-name"></span><span class="dlg-role"></span><span class="dlg-tag"></span></div>
+        <div class="dlg-text"></div>
+      </div>
+      <div class="dlg-thought"><div class="th-title">💭 內心獨白</div><div class="th-text"></div></div>
+    </div>
+
+    <div id="banner"></div>
+
+    <aside id="chronicle" class="hidden">
+      <div class="chr-head">📜 編年史 <small>點擊任一行可跳轉</small><button id="chr-close">✕</button></div>
+      <div id="chr-list"></div>
+    </aside>
+
+    <section id="lobby">
+      <div class="lobby-card">
+        <div class="lobby-title">
+          <div class="big-moon"></div>
+          <h1>月下狼人殺</h1>
+          <p>AI 競技場 · 寫下你的策略，讓你的 AI 上場廝殺</p>
+        </div>
+        <div class="lobby-body">
+          <div class="lobby-left">
+            <div class="row">
+              <label>板子 <select id="board"></select></label>
+              <label>種子 <input id="seed" placeholder="隨機" size="9"></label>
+              <label>全部改用 <select id="all-model"><option value="">（選擇模型）</option></select></label>
+            </div>
+            <div id="key-status"></div>
+            <div id="seat-table"></div>
+            <div class="row actions">
+              <button class="gold" id="btn-start">⚔ 開始對局</button>
+              <button id="btn-shuffle">🎲 打亂座位</button>
+            </div>
+            <p id="lobby-err"></p>
+          </div>
+          <div class="lobby-right">
+            <h3>🧪 策略 Skill 圖鑑 <small>（放在 skills/ 資料夾）</small></h3>
+            <div id="skill-list"></div>
+            <div class="skill-import">
+              <label class="file">📦 匯入外部 Skill（ZIP）<input type="file" id="skill-file" accept=".zip,application/zip"></label>
+              <small>ZIP 內需有一個 <code>SKILL.md</code>。外部 <code>strategy.py</code> 會在本機執行，請只匯入可信來源。</small>
+              <div id="skill-import-status"></div>
+            </div>
+            <h3>🎞 回放</h3>
+            <div id="replay-list"></div>
+            <label class="file">📂 載入回放檔 <input type="file" id="replay-file" accept=".json"></label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gameover" class="hidden"></section>
+  </div>
+</div>
+<script src="art.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
