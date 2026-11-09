@@ -1,5 +1,5 @@
 ---
-name: 自訂策略
+name: strategy
 author: 請填寫作者名稱
 description: 可自由修改的通用狼人殺策略
 persona: 冷靜、清楚、像熟悉規則的真人玩家；發言簡潔但要有結論
