@@ -6,7 +6,7 @@ from .roles import role_name
 KIND_NAMES = {
     "speech": "白天發言", "wolf_chat": "狼人夜聊", "wolf_kill": "選擇刀人", "seer_check": "查驗",
     "witch": "用藥", "guard": "守護", "vote": "投票", "pk_vote": "PK 投票", "pk_speech": "PK 發言",
-    "last_words": "遺言", "hunter_shoot": "開槍",
+    "last_words": "遺言", "hunter_shoot": "開槍", "postgame": "賽後復盤",
 }
 
 
@@ -86,6 +86,11 @@ def narrate(ev: dict, game=None) -> str:
         return "PK 台上：" + "、".join(L(s) for s in d["candidates"]) + "，請依序發言。"
     if t == "no_exile":
         return d["reason"]
+    if t == "postgame_start":
+        w = "狼人" if d["winner"] == "wolf" else "好人"
+        return f"—— 身分公開，進入賽後復盤：{w}陣營獲勝 ——"
+    if t == "postgame":
+        return f"[賽後復盤] {L(d['seat'])}（{role_name(d['role'])}）：{d['text']}"
     if t == "game_over":
         w = {"wolf": "狼人陣營勝利！", "village": "好人陣營勝利！", None: "遊戲結束（無勝者）"}[d["winner"]]
         return f"🏁 {w} 原因：{d['reason']}"

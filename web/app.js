@@ -6,12 +6,13 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const ROLE = { werewolf: '狼人', villager: '村民', seer: '預言家', witch: '女巫', hunter: '獵人', guard: '守衛' };
 const TEAM = r => (r === 'werewolf' ? 'wolf' : 'village');
-const SPEECH_KINDS = ['speech', 'wolf_chat', 'last_words', 'pk_speech'];
-const KIND_NAME = { speech: '發言', wolf_chat: '狼人夜聊', wolf_kill: '狼人刀人', seer_check: '預言家查驗', witch: '女巫用藥', guard: '守衛守護', vote: '投票', pk_vote: 'PK 投票', pk_speech: 'PK 發言', last_words: '遺言', hunter_shoot: '獵人開槍' };
+const SPEECH_KINDS = ['speech', 'wolf_chat', 'last_words', 'pk_speech', 'postgame'];
+const KIND_NAME = { speech: '發言', wolf_chat: '狼人夜聊', wolf_kill: '狼人刀人', seer_check: '預言家查驗', witch: '女巫用藥', guard: '守衛守護', vote: '投票', pk_vote: 'PK 投票', pk_speech: 'PK 發言', last_words: '遺言', hunter_shoot: '獵人開槍', postgame: '賽後復盤' };
 
 const P = { events: [], cursor: 0, playing: false, speed: 1, god: true, live: null, done: true, timer: null, lastStart: null };
 let S = freshState();
 let SETUP = null;
+let seatSkillImportTarget = null;
 
 function freshState() {
   return { players: {}, n: 0, day: 0, phase: 'setup', sub: '', roles: {}, revealed: {}, deathCause: {}, votes: {}, order: [], winner: null, board: '', boardName: '', seed: null, acting: null, pendingThought: {}, over: null };
@@ -67,7 +68,7 @@ function renderSeats() {
     const el = $('#seat-' + p.seat);
     if (!el) return;
     const role = S.roles[p.seat];
-    const showRole = role && (P.god || S.revealed[p.seat] || S.over);
+    const showRole = role && (P.god || S.revealed[p.seat] || S.postgame || S.over);
     el.classList.toggle('dead', !p.alive);
     el.classList.toggle('show-role', !!showRole);
     const badge = $('.rolebadge', el);
@@ -98,7 +99,7 @@ function renderPhase() {
   let txt = '準備中';
   if (S.phase === 'night') txt = `第 ${S.day} 夜` + (S.sub ? ` · ${S.sub}` : '');
   else if (S.phase === 'day') txt = `第 ${S.day} 天` + (S.sub ? ` · ${S.sub}` : '');
-  else if (S.phase === 'end') txt = '對局結束';
+  else if (S.phase === 'end') txt = S.postgame && !S.over ? '賽後復盤' : '對局結束';
   $('#phase-text').textContent = txt;
   $('#phase-icon').innerHTML = S.phase === 'day' || S.phase === 'end' ? Art.ICON.sun : Art.ICON.moon;
 }
@@ -124,6 +125,7 @@ function apply(ev) {
     case 'speech_order': S.order = d.order; break;
     case 'pk_start': S.votes = {}; break;
     case 'vote': S.votes[d.seat] = d.target; break;
+    case 'postgame_start': S.winner = d.winner; S.roles = norm(d.roles); S.phase = 'end'; S.postgame = true; break;
     case 'game_over': S.winner = d.winner; S.roles = norm(d.roles); S.over = d; S.phase = 'end'; break;
   }
   if (ev.type === 'acting') S.awake = d.seat;
@@ -142,6 +144,7 @@ function subPhase(ev) {
   if (t === 'speech_order' || t === 'speech') return ev.data.pk ? 'PK 發言' : '發言';
   if (t === 'vote') return '投票'; if (t === 'last_words') return '遺言'; if (t === 'pk_start') return 'PK';
   if (t === 'night_result') return '公布死訊';
+  if (t === 'postgame_start' || t === 'postgame') return '賽後復盤';
   return null;
 }
 const norm = o => { const r = {}; Object.entries(o || {}).forEach(([k, v]) => (r[+k] = v)); return r; };
@@ -191,7 +194,8 @@ function thoughtCloud(seat, text, ms) {
   el.style.left = Math.min(1460, Math.max(140, a.x)) + 'px'; el.style.top = a.y - 60 + 'px';
   el.innerHTML = `<b>💭 ${esc(pname(seat))}</b><br>${esc(text)}`;
   $('#fxlayer').appendChild(el);
-  later(() => el.remove(), ms);
+  if (P.playing) later(() => el.remove(), ms);
+  else el.classList.add('await-click');
 }
 function shake(seat) { const el = $('#seat-' + seat); if (el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } }
 function banner(icon, title, sub, ms, red) {
@@ -344,6 +348,12 @@ function animate(ev) {
     case 'no_exile':
       dialog({ text: d.reason, channel: '⚖ 投票結果' });
       return 1800;
+    case 'postgame_start':
+      hideDialog(); clearLines();
+      banner(Art.ICON.moon, '身分公開', '賽後復盤 · 說說這局的關鍵', 2600);
+      return 2700;
+    case 'postgame':
+      return dialog({ seat: d.seat, channel: `◇ 賽後復盤 · ${ROLE[d.role]}`, text: d.text, thought: take(d.seat), cls: 'postgame' });
     case 'game_over':
       hideDialog(); clearLines(); $('#tally').innerHTML = '';
       showGameOver(d);
@@ -397,6 +407,7 @@ function processNext() {
 }
 function step() {
   P.playing = false; updatePlayBtn(); clearTimeout(P.timer);
+  $$('.thought-cloud.await-click').forEach(x => x.remove());
   while (P.cursor < P.events.length) {
     const ev = P.events[P.cursor];
     const d = processNext();
@@ -422,8 +433,16 @@ function seek(i) {
   renderSeats();
   if (P.playing) tick();
 }
-function setPlaying(v) { P.playing = v; updatePlayBtn(); if (v) tick(); else clearTimeout(P.timer); }
-function updatePlayBtn() { $('#btn-play').textContent = P.playing ? '⏸' : '▶'; }
+function setPlaying(v) {
+  P.playing = v;
+  updatePlayBtn();
+  if (v) { $$('.thought-cloud.await-click').forEach(x => x.remove()); tick(); }
+  else clearTimeout(P.timer);
+}
+function updatePlayBtn() {
+  $('#btn-play').textContent = P.playing ? '⏸' : '▶';
+  $('#stage').classList.toggle('manual', !P.playing);
+}
 
 $('#btn-play').onclick = () => setPlaying(!P.playing);
 $('#btn-step').onclick = step;
@@ -479,6 +498,7 @@ async function api(url, opt) {
 function openLobby() { $('#lobby').classList.remove('hidden'); refreshReplays(); }
 
 async function loadSetup() {
+  const previousBoard = SETUP && $('#board') ? $('#board').value : null;
   try {
     SETUP = await api('/api/setup');
   } catch (e) {
@@ -490,7 +510,7 @@ async function loadSetup() {
     : `<span class="bad">⚠ 沒有讀到 OpenAI API 金鑰。請設定環境變數 <code>${esc(SETUP.key_env)}</code> 或在專案資料夾放 <code>.env</code>，然後重新啟動 run.py。在那之前只能選「規則 AI」。</span>`;
   const bs = $('#board');
   bs.innerHTML = Object.entries(SETUP.boards).map(([k, b]) => `<option value="${k}">${b.name}</option>`).join('');
-  bs.value = SETUP.board;
+  bs.value = previousBoard && SETUP.boards[previousBoard] ? previousBoard : SETUP.board;
   bs.onchange = renderSeatTable;
   const am = $('#all-model');
   am.innerHTML = '<option value="">（選擇模型）</option>' + SETUP.models.map(m => `<option value="${m.id}">${esc(m.label)}</option>`).join('');
@@ -511,10 +531,15 @@ function renderSeatTable() {
     rows.push(`<div class="seat-row"><div class="n">${i + 1}</div><div class="mini">${Art.avatar(p.name)}</div>
       <input class="nm" value="${esc(p.name)}" maxlength="10">
       <select class="sk">${SETUP.skills.map(s => `<option value="${s.id}" ${s.id === p.skill ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>
-      <select class="m">${SETUP.models.map(m => `<option value="${m.id}" ${m.id === p.model ? 'selected' : ''}>${esc(m.label)}</option>`).join('')}</select></div>`);
+      <select class="m">${SETUP.models.map(m => `<option value="${m.id}" ${m.id === p.model ? 'selected' : ''}>${esc(m.label)}</option>`).join('')}</select>
+      <button type="button" class="seat-skill-import" title="匯入 Skill 並套用到 ${i + 1} 號玩家">＋ Skill</button></div>`);
   }
   $('#seat-table').innerHTML = rows.join('');
   $$('.seat-row .nm').forEach(inp => inp.oninput = () => { inp.parentElement.querySelector('.mini').innerHTML = Art.avatar(inp.value); });
+  $$('.seat-row .seat-skill-import').forEach((button, i) => button.onclick = () => {
+    seatSkillImportTarget = i;
+    $('#seat-skill-file').click();
+  });
 }
 $('#btn-shuffle').onclick = () => {
   const rows = $$('.seat-row').map(r => ({ name: $('.nm', r).value, skill: $('.sk', r).value, model: $('.m', r).value }));
@@ -569,8 +594,7 @@ $('#replay-file').onchange = e => {
   if (!f) return;
   f.text().then(t => loadReplay(JSON.parse(t)));
 };
-$('#skill-file').onchange = async e => {
-  const input = e.target;
+async function importSkill(input, targetIndex = null) {
   const f = input.files[0];
   if (!f) return;
   const out = $('#skill-import-status');
@@ -587,12 +611,24 @@ $('#skill-file').onchange = async e => {
     });
     out.textContent = `✅ 已匯入 skills/${j.skill_id}`;
     await loadSetup();
-    out.textContent = `✅ 已匯入 skills/${j.skill_id}，現在可套用到玩家`;
+    if (targetIndex !== null) {
+      const row = $$('.seat-row')[targetIndex];
+      if (row) $('.sk', row).value = j.skill_id;
+      out.textContent = `✅ 已匯入 skills/${j.skill_id}，並套用到 ${targetIndex + 1} 號玩家`;
+    } else {
+      out.textContent = `✅ 已匯入 skills/${j.skill_id}，現在可套用到玩家`;
+    }
   } catch (err) {
     out.textContent = '⚠ ' + err.message;
   } finally {
     input.value = '';
   }
+}
+$('#skill-file').onchange = e => importSkill(e.target);
+$('#seat-skill-file').onchange = e => {
+  const target = seatSkillImportTarget;
+  seatSkillImportTarget = null;
+  importSkill(e.target, target);
 };
 function loadReplay(j) {
   $('#lobby').classList.add('hidden'); $('#gameover').classList.add('hidden');
@@ -605,6 +641,7 @@ $('#scenery-wrap').innerHTML = Art.scenery();
 $('#stars').innerHTML = Art.stars();
 fit();
 renderPhase();
+updatePlayBtn();
 loadSetup();
 // 網址帶 ?replay=檔名 可直接播放
 const qp = new URLSearchParams(location.search);

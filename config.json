@@ -18,16 +18,16 @@
   },
   "players": [
     {"name": "阿明", "skill": "baseline", "model": "gpt-6-luna"},
-    {"name": "小美", "skill": "bold_wolf", "model": "gpt-6-luna"},
-    {"name": "老王", "skill": "detective", "model": "gpt-6-luna"},
-    {"name": "佳佳", "skill": "silent_villager", "model": "gpt-6-luna"},
+    {"name": "小美", "skill": "baseline", "model": "gpt-6-luna"},
+    {"name": "老王", "skill": "baseline", "model": "gpt-6-luna"},
+    {"name": "佳佳", "skill": "baseline", "model": "gpt-6-luna"},
     {"name": "阿傑", "skill": "baseline", "model": "gpt-6-luna"},
-    {"name": "小芸", "skill": "bold_wolf", "model": "gpt-6-luna"},
-    {"name": "大雄", "skill": "detective", "model": "gpt-6-luna"},
-    {"name": "Kiki", "skill": "silent_villager", "model": "gpt-6-luna"},
+    {"name": "小芸", "skill": "baseline", "model": "gpt-6-luna"},
+    {"name": "大雄", "skill": "baseline", "model": "gpt-6-luna"},
+    {"name": "Kiki", "skill": "baseline", "model": "gpt-6-luna"},
     {"name": "宗翰", "skill": "baseline", "model": "gpt-6-luna"},
-    {"name": "雅婷", "skill": "detective", "model": "gpt-6-luna"},
-    {"name": "柏宇", "skill": "bold_wolf", "model": "gpt-6-luna"},
+    {"name": "雅婷", "skill": "baseline", "model": "gpt-6-luna"},
+    {"name": "柏宇", "skill": "baseline", "model": "gpt-6-luna"},
     {"name": "思妤", "skill": "baseline", "model": "gpt-6-luna"}
   ]
 }

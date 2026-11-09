@@ -8,7 +8,7 @@ request = {"kind": 動作種類, "options": [可選座位], "allow_none": 可否
 view    = 該玩家視角的遊戲狀態（見 Game.view_for），包含他看得到的所有歷史事件。
 
 回傳欄位依動作而定：
-  發言類 (speech / wolf_chat / last_words / pk_speech) -> {"speech": "...", "claim": {...}?}
+  發言類 (speech / wolf_chat / last_words / pk_speech / postgame) -> {"speech": "...", "claim": {...}?}
   選人類 (vote / pk_vote / wolf_kill / seer_check / guard / hunter_shoot) -> {"target": 座位 or None}
   女巫 (witch) -> {"save": bool, "poison": 座位 or None}
   任何動作都可以加 "thinking"（內心獨白，只有觀戰者看得到）與 "notes"（自己的筆記，下回合會再看到）。
@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 from . import llm
 from .roles import BOARDS, ROLES, role_name
 
-SPEECH_KINDS = ("speech", "wolf_chat", "last_words", "pk_speech")
+SPEECH_KINDS = ("speech", "wolf_chat", "last_words", "pk_speech", "postgame")
 
 
 # ============================================================================ 共用分析
@@ -378,6 +378,25 @@ class RuleAgent:
         r["speech"] = "我在 PK 台上，請大家聽我說。" + r["speech"]
         return r
 
+    def _postgame(self, req, view, a):
+        info = req.get("info", {})
+        won = info.get("winner") == view["team"]
+        role = role_name(view["role"])
+        if view["role"] == "werewolf":
+            body = self.rng.choice([
+                "這局白天的站邊和夜裡刀口配合得不錯。",
+                "有幾輪差點被票型抓到，下次需要更早切割隊友。",
+                "悍跳帶來不少空間，但假查驗還能安排得更自然。",
+            ])
+        else:
+            body = self.rng.choice([
+                "這局最關鍵的是預言家對跳後的站邊，票型其實已經留下線索。",
+                "我們對發言的判斷太快，下次應該把查驗、死亡和投票一起看。",
+                "夜間資訊不完整時分票代價很大，下次要更早統一歸票。",
+            ])
+        result = "贏得漂亮" if won else "這局輸了，但值得復盤"
+        return {"speech": f"我是{role}。{result}；{body}"}
+
 
 # ============================================================================ LLM AI
 RULES_TEXT = """你正在玩一場「狼人殺」桌遊（中文標準規則），對手都是其他 AI。
@@ -405,6 +424,7 @@ KIND_TASK = {
     "vote": "請投票放逐一名玩家，也可以棄票（target 填 null）。",
     "pk_vote": "PK 投票：在台上的候選人中投一個，或棄票。",
     "hunter_shoot": "你是獵人並且出局了，可以開槍帶走一名玩家，也可以不開槍（target 填 null）。",
+    "postgame": "對局已經結束、身分全部公開。現在輪到你進行賽後復盤。",
 }
 
 
@@ -435,8 +455,10 @@ class LLMAgent:
             s.append("本局加註：只要存活狼人數 ≥ 存活好人數，狼人立即獲勝。")
         s.append(f"本局板子：{BOARDS[view['board']]['name']}（{counts}）。")
         s.append(f"你是 {view['seat']}號玩家「{view['name']}」，你的真實身分是【{role_name(role)}】：{ROLES[role]['desc']}")
-        if role == "werewolf":
+        if role == "werewolf" and view["phase"] != "end":
             s.append(f"你的狼隊友：{_seat_list(view, view.get('teammates', []))}。絕對不要在白天暴露自己或隊友。")
+        if view["phase"] == "end":
+            s.append("本局已經結束，所有身分都已公開。現在可以坦白策略與判斷，不必再隱藏陣營。")
         if self.skill:
             persona = self.skill.meta.get("persona")
             if persona:
@@ -475,7 +497,15 @@ class LLMAgent:
 
         kind = req["kind"]
         lines.append(f"\n【你現在要做的事】{KIND_TASK.get(kind, kind)}")
-        if kind == "witch":
+        if kind == "postgame":
+            info = req["info"]
+            roles = "、".join(f"{s}號={role_name(r)}" for s, r in info.get("roles", {}).items())
+            winner = "狼人" if info.get("winner") == "wolf" else "好人" if info.get("winner") == "village" else "無勝者"
+            lines.append(f"本局結果：{winner}陣營；原因：{info.get('reason', '')}")
+            lines.append(f"公開身分：{roles}")
+            lines.append("請用一到三句話坦白你這局的策略、指出關鍵轉折，或檢討一個判斷。這是友善的賽後復盤，不要繼續假裝身分。")
+            lines.append('{"speech": "你要對所有玩家說的賽後感想"}')
+        elif kind == "witch":
             info = req["info"]
             if info.get("victim"):
                 lines.append(f"今晚被狼人刀的是 {info['victim']}號。" + ("你可以用解藥救他。" if info.get("can_save") else "（你不能救：不能自救）"))

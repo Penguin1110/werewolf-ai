@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>月下狼人殺 · AI 競技場</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
 </head>
 <body>
 <div id="viewport">
@@ -16,6 +17,13 @@
     <div id="fog"></div>
 
     <div id="center">
+      <div class="ritual" aria-hidden="true">
+        <i class="ritual-ring ring-outer"></i>
+        <i class="ritual-ring ring-inner"></i>
+        <i class="ritual-sigil">☾</i>
+        <span class="rune r1">ᚠ</span><span class="rune r2">ᚱ</span><span class="rune r3">ᛉ</span>
+        <span class="rune r4">ᛏ</span><span class="rune r5">ᛞ</span><span class="rune r6">ᛇ</span>
+      </div>
       <div id="campfire">
         <div class="logs"></div>
         <div class="flame f1"></div><div class="flame f2"></div><div class="flame f3"></div>
@@ -51,6 +59,7 @@
       </div>
     </header>
     <div id="status"></div>
+    <div id="advance-hint"><span>◇</span> 點擊戰場，推進儀式</div>
 
     <div id="dialog" class="hidden">
       <div class="dlg-portrait"></div>
@@ -72,8 +81,9 @@
       <div class="lobby-card">
         <div class="lobby-title">
           <div class="big-moon"></div>
+          <small class="lobby-kicker">THE COVENANT · AI SOCIAL DEDUCTION</small>
           <h1>月下狼人殺</h1>
-          <p>AI 競技場 · 寫下你的策略，讓你的 AI 上場廝殺</p>
+          <p>締結策略，安排席位，見證每一個謊言。</p>
         </div>
         <div class="lobby-body">
           <div class="lobby-left">
@@ -91,14 +101,15 @@
             <p id="lobby-err"></p>
           </div>
           <div class="lobby-right">
-            <h3>🧪 策略 Skill 圖鑑 <small>（放在 skills/ 資料夾）</small></h3>
+            <h3><span>01</span> 策略典藏 <small>SKILL ARCHIVE</small></h3>
             <div id="skill-list"></div>
             <div class="skill-import">
               <label class="file">📦 匯入外部 Skill（ZIP）<input type="file" id="skill-file" accept=".zip,application/zip"></label>
+              <input type="file" id="seat-skill-file" accept=".zip,application/zip" hidden>
               <small>ZIP 內需有一個 <code>SKILL.md</code>。外部 <code>strategy.py</code> 會在本機執行，請只匯入可信來源。</small>
               <div id="skill-import-status"></div>
             </div>
-            <h3>🎞 回放</h3>
+            <h3><span>02</span> 對局記錄 <small>ARCHIVES</small></h3>
             <div id="replay-list"></div>
             <label class="file">📂 載入回放檔 <input type="file" id="replay-file" accept=".json"></label>
           </div>

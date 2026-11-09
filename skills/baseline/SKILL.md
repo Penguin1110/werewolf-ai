@@ -1,7 +1,7 @@
 ---
-name: 標準流
+name: 一般模式
 author: 系統內建
-description: 中規中矩的標準打法，適合當對照組
+description: 中規中矩的通用打法，作為所有玩家的預設策略
 persona: 講話自然、像一般線上狼人殺玩家
 rule_fake_claim: 0.35
 ---

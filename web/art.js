@@ -16,7 +16,7 @@ const Art = (() => {
   const BG = ['#3a2a4f', '#24384f', '#3b2f2a', '#2b4237', '#4a2d36', '#2f3550'];
 
   // 每位玩家的原創角色立繪
-  function avatar(seed) {
+  function legacyAvatar(seed) {
     const r = rng(seed);
     const skin = pick(r, SKIN), hair = pick(r, HAIR), cloak = pick(r, CLOAK), bg = pick(r, BG);
     const style = Math.floor(r() * 7);
@@ -83,6 +83,73 @@ const Art = (() => {
       ${glasses ? `<g fill="none" stroke="#c9b27a" stroke-width="1.4"><circle cx="${50 - eyeGap}" cy="${eyeY}" r="5.5"/><circle cx="${50 + eyeGap}" cy="${eyeY}" r="5.5"/><path d="M${50 - eyeGap + 5.5} ${eyeY} L${50 + eyeGap - 5.5} ${eyeY}"/></g>` : ''}
       ${scar ? `<path d="M60 40 L66 54" stroke="#9b4a3a" stroke-width="1.5"/>` : ''}
       ${hat}
+    </svg>`;
+  }
+
+  // 玩家肖像：低飽和版畫風，避免 Q 版頭像破壞暗黑桌遊氣氛
+  function avatar(seed) {
+    const r = rng(seed);
+    const id = 'p' + Math.floor(r() * 1e9);
+    const skin = pick(r, ['#c8a88d', '#b99173', '#977156', '#d0b39a', '#80604b']);
+    const light = pick(r, ['#b8a47b', '#89939a', '#8b766c', '#78877d', '#96829b']);
+    const cloth = pick(r, ['#273039', '#34302d', '#29352f', '#382c33', '#2d2a3a']);
+    const hair = pick(r, ['#171616', '#2a211d', '#46372d', '#5a493c', '#8a8175']);
+    const bg = pick(r, ['#20262c', '#292421', '#202925', '#29222a', '#22232c']);
+    const style = Math.floor(r() * 6);
+    const scar = r() < .18;
+    const beard = r() < .28;
+    const eyeGap = 8 + r() * 1.5;
+    let back = '', front = '', accessory = '';
+
+    if (style === 0) {
+      front = `<path d="M32 42 Q31 20 50 18 Q69 20 68 42 Q60 31 51 30 Q42 36 32 42Z" fill="${hair}"/>`;
+    } else if (style === 1) {
+      back = `<path d="M28 39 Q27 16 50 15 Q73 17 72 41 L75 78 L62 72 L59 35 L40 35 L37 73 L25 80Z" fill="${hair}"/>`;
+      front = `<path d="M31 41 Q30 20 50 18 Q70 20 69 41 Q59 28 49 29 Q40 32 31 41Z" fill="${hair}"/>`;
+    } else if (style === 2) {
+      back = `<path d="M22 62 Q20 14 50 11 Q80 14 78 62 L82 90 L18 90Z" fill="${cloth}"/>`;
+      front = `<path d="M25 55 Q25 18 50 15 Q75 18 75 55 Q68 29 50 27 Q32 29 25 55Z" fill="${cloth}"/><path d="M34 40 Q37 26 51 25 Q65 28 67 41 Q57 31 48 32 Q41 36 34 40Z" fill="${hair}"/>`;
+    } else if (style === 3) {
+      front = `<path d="M31 42 Q30 21 50 19 Q70 21 69 42 Q61 29 50 29 Q39 30 31 42Z" fill="${hair}"/><path d="M31 30 Q50 24 69 31" fill="none" stroke="${light}" stroke-width="2"/>`;
+      accessory = `<path d="M66 36 Q78 43 72 61" fill="none" stroke="${light}" stroke-width="2"/><circle cx="72" cy="62" r="2" fill="${light}"/>`;
+    } else if (style === 4) {
+      front = `<path d="M31 42 Q31 23 49 21 Q67 22 69 42 Q58 33 48 28 Q43 37 31 42Z" fill="${hair}"/>`;
+      accessory = `<path d="M20 29 Q50 20 80 29" stroke="#151515" stroke-width="7"/><path d="M35 26 Q36 8 50 8 Q64 8 66 26Z" fill="#171718"/><path d="M36 23 L65 23" stroke="${light}" stroke-width="2"/>`;
+    } else {
+      back = `<path d="M27 38 Q29 15 50 14 Q71 16 73 39 L69 70 L62 67 L60 32 L39 32 L37 68 L29 72Z" fill="${hair}"/>`;
+      front = `<path d="M31 40 Q32 20 52 18 Q69 21 69 39 Q55 36 46 25 Q41 35 31 40Z" fill="${hair}"/>`;
+    }
+
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="avatar portrait-art">
+      <defs>
+        <radialGradient id="${id}bg" cx="42%" cy="32%" r="78%"><stop offset="0" stop-color="${bg}"/><stop offset="1" stop-color="#08090b"/></radialGradient>
+        <linearGradient id="${id}coat" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${light}" stop-opacity=".52"/><stop offset=".42" stop-color="${cloth}"/><stop offset="1" stop-color="#111317"/></linearGradient>
+        <linearGradient id="${id}face" x1="0" y1="0" x2="1" y2=".4"><stop stop-color="${skin}"/><stop offset=".58" stop-color="${skin}"/><stop offset="1" stop-color="#3a2b25"/></linearGradient>
+        <pattern id="${id}hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="5" stroke="#fff" stroke-opacity=".035" stroke-width="1"/></pattern>
+      </defs>
+      <rect width="100" height="100" fill="url(#${id}bg)"/>
+      <circle cx="50" cy="48" r="42" fill="none" stroke="${light}" stroke-opacity=".13"/>
+      ${back}
+      <path d="M8 103 Q12 76 37 71 L50 85 L63 71 Q88 76 92 103Z" fill="url(#${id}coat)"/>
+      <path d="M42 66 L40 75 L50 86 L60 75 L58 65Z" fill="${skin}" opacity=".82"/>
+      <path d="M34 39 Q34 20 50 19 Q66 21 66 40 L63 57 Q60 69 50 74 Q40 69 37 57Z" fill="url(#${id}face)"/>
+      <path d="M35 40 Q30 40 33 52 L37 54 M65 40 Q70 40 67 52 L63 54" fill="${skin}" stroke="#49362d" stroke-width=".7"/>
+      ${front}
+      <g class="eyes" stroke="#171719" stroke-linecap="round">
+        <path d="M${50 - eyeGap - 5} 43 Q${50 - eyeGap} 40 ${50 - eyeGap + 5} 43" stroke-width="2"/>
+        <path d="M${50 + eyeGap - 5} 43 Q${50 + eyeGap} 40 ${50 + eyeGap + 5} 43" stroke-width="2"/>
+        <path d="M${50 - eyeGap - 4} 48 Q${50 - eyeGap} 50 ${50 - eyeGap + 4} 48" stroke-width="1.4"/>
+        <path d="M${50 + eyeGap - 4} 48 Q${50 + eyeGap} 50 ${50 + eyeGap + 4} 48" stroke-width="1.4"/>
+        <circle cx="${50 - eyeGap}" cy="48" r="1.5" fill="#232126" stroke="none"/><circle cx="${50 + eyeGap}" cy="48" r="1.5" fill="#232126" stroke="none"/>
+      </g>
+      <g class="wolf-eyes"><path d="M${50 - eyeGap - 4} 48 L${50 - eyeGap + 4} 47" stroke="#d23b39" stroke-width="2.6"/><path d="M${50 + eyeGap - 4} 47 L${50 + eyeGap + 4} 48" stroke="#d23b39" stroke-width="2.6"/></g>
+      <path d="M50 47 L47 57 L51 59" fill="none" stroke="#5f4437" stroke-width="1.2"/>
+      <path d="M44 64 Q50 ${62 + r() * 4} 56 64" fill="none" stroke="#50342f" stroke-width="1.5"/>
+      ${beard ? `<path d="M37 57 Q39 73 50 77 Q61 73 63 57 Q58 69 50 70 Q42 69 37 57Z" fill="${hair}" opacity=".78"/>` : ''}
+      ${scar ? `<path d="M60 38 L55 56" stroke="#70423b" stroke-width="1.4"/><path d="M57 44 L61 46 M55 50 L59 52" stroke="#70423b" stroke-width=".8"/>` : ''}
+      ${accessory}
+      <rect width="100" height="100" fill="url(#${id}hatch)"/>
+      <path d="M0 0 H100 V100 H0Z" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="7"/>
     </svg>`;
   }
 

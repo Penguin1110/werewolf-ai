@@ -64,7 +64,7 @@ class Game:
         for i, (spec, role) in enumerate(zip(player_specs, roles), start=1):
             self.players.append(Player(i, spec["name"], role, spec["agent"], spec.get("skill", "?"), spec.get("model", "?")))
         self.rules = {"majority_win": False, "max_days": 15, "first_night_last_words": True,
-                      "speech_max_chars": 400, "think_max_chars": 600}
+                      "speech_max_chars": 400, "think_max_chars": 600, "postgame_discussion": True}
         self.rules.update(rules or {})
         self.events: List[dict] = []
         self.on_event = on_event
@@ -188,7 +188,7 @@ class Game:
         if not isinstance(resp, dict):
             return "回傳必須是 dict"
         kind = req["kind"]
-        if kind in ("speech", "last_words", "wolf_chat", "pk_speech"):
+        if kind in ("speech", "last_words", "wolf_chat", "pk_speech", "postgame"):
             if not isinstance(resp.get("speech"), str):
                 return "缺少 speech 字串"
             return None
@@ -220,7 +220,7 @@ class Game:
         return None
 
     def _default_response(self, req: dict) -> dict:
-        if req["kind"] in ("speech", "last_words", "wolf_chat", "pk_speech"):
+        if req["kind"] in ("speech", "last_words", "wolf_chat", "pk_speech", "postgame"):
             return {"speech": "過。"}
         if req["kind"] == "witch":
             return {"save": False, "poison": None}
@@ -245,8 +245,14 @@ class Game:
     def _finish(self, winner: Optional[str], reason: str):
         self.winner = winner
         self.phase = "end"
-        self.emit("game_over", {"winner": winner, "reason": reason,
-                                "roles": {p.seat: p.role for p in self.players}})
+        roles = {p.seat: p.role for p in self.players}
+        if self.rules.get("postgame_discussion", True) and winner is not None:
+            self.emit("postgame_start", {"winner": winner, "reason": reason, "roles": roles})
+            info = {"winner": winner, "reason": reason, "roles": roles}
+            for p in self.players:
+                r = self.ask(p, "postgame", info=info)
+                self.emit("postgame", {"seat": p.seat, "text": r["speech"], "role": p.role})
+        self.emit("game_over", {"winner": winner, "reason": reason, "roles": roles})
 
     # ------------------------------------------------------------------ 主流程
     def run(self) -> Optional[str]:

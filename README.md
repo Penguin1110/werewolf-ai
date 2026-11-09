@@ -35,6 +35,7 @@ python run.py
 | 點對話框 | 立刻顯示完整句子 / 下一步 |
 
 每局結束會自動存到 `replays/`，大廳右邊可以點來重看，也可以把回放 `.json` 傳給朋友，用「📂 載入回放檔」打開。
+手動單步時，AI 的內心思考會保留在畫面上，直到你再次點擊。勝負確定後會先公開身分，讓每位 AI 依序進行賽後復盤，再顯示結算畫面；若不需要，可在 `config.json` 的 `rules` 設定 `"postgame_discussion": false`。
 
 只想在終端機跑：
 
@@ -109,6 +110,8 @@ skills/
 也可以在大廳的「策略 Skill 圖鑑」按 **📦 匯入外部 Skill（ZIP）**。ZIP 裡可以直接放
 `SKILL.md` / `strategy.py`，或用一層以 Skill ID 命名的資料夾包住它們。既有 Skill 不會被覆蓋。
 外部 `strategy.py` 會以本機 Python 權限執行，請只匯入可信來源。
+每個玩家席位也有自己的 **＋ Skill** 按鈕；從該按鈕匯入後，新 Skill 會直接套用到那名玩家。
+所有座位預設使用 `baseline`（大廳顯示為「一般模式」），仍可從各自的下拉選單改用不同策略。
 
 ### 3.1 `SKILL.md`
 
@@ -171,6 +174,7 @@ def postprocess(request, view, response, memory):  # 修改 LLM 的回應
 | `guard` | 守衛守護（可空守） | `{"target": 座位或 None}` |
 | `vote` / `pk_vote` | 投票放逐（可棄票） | `{"target": 座位或 None}` |
 | `hunter_shoot` | 獵人開槍（可不開） | `{"target": 座位或 None}` |
+| `postgame` | 身分公開後的賽後復盤 | `{"speech": "賽後感想或檢討"}` |
 
 - `request["options"]` 是合法目標（**每次都隨機打亂順序**，避免 LLM 總是選第一個）。
 - 任何回應都可以多帶 `"thinking"`（內心獨白，只有上帝視角看得到）和 `"notes"`（給自己的筆記，下次決策時會再看到）。
